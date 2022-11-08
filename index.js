@@ -19,6 +19,7 @@ async function run() {
     try {
         const serviceCollection = client.db('MaxDental').collection('servicesName')
         const service_Collection = client.db('MaxDental').collection('services')
+        const reviewCollection = client.db('MaxDental').collection('review')
         // servicename to show on home page
         app.get('/servicesName', async(req, res)=>{
             const query = {}
@@ -40,6 +41,12 @@ async function run() {
             const query = {_id : ObjectId(id)}
 
             const result = await service_Collection.findOne(query)
+            res.send(result)
+        })
+        // get review 
+        app.post('/review', async(req, res)=>{
+            const review = req.body 
+            const result = await reviewCollection.insertOne(review)
             res.send(result)
         })
     }
