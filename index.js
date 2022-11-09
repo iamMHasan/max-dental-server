@@ -1,6 +1,7 @@
 const express = require('express');
 const cors = require('cors');
 require('dotenv').config()
+const jwt = require('jsonwebtoken')
 const { MongoClient, ServerApiVersion, ObjectId } = require('mongodb');
 
 const app = express()
@@ -20,6 +21,7 @@ async function run() {
         const serviceCollection = client.db('MaxDental').collection('servicesName')
         const service_Collection = client.db('MaxDental').collection('services')
         const reviewCollection = client.db('MaxDental').collection('review')
+        const addedServiceCollection = client.db('MaxDental').collection('addservice')
         // servicename to show on home page
         app.get('/servicesName', async(req, res)=>{
             const query = {}
@@ -41,6 +43,14 @@ async function run() {
             const query = {_id : ObjectId(id)}
 
             const result = await service_Collection.findOne(query)
+            res.send(result)
+        })
+        // get review specifice
+        app.delete('/review/:id', async(req, res)=>{
+            const id = req.params.id 
+            
+            const query = {_id : ObjectId(id)}
+            const result = await reviewCollection.deleteOne(query)
             res.send(result)
         })
         // get review 
@@ -66,6 +76,32 @@ async function run() {
             const review = await cursor.toArray()
             res.send(review)
         })
+        // add service by user
+        app.post('/addservice', async(req, res)=>{
+            const service = req.body
+            const result = await addedServiceCollection.insertOne(service)
+            res.send(result)
+        })
+        // get add services
+        app.get('/addservice', async(req, res)=>{
+            let query = {}
+            if(req.query.email){
+                query={
+                    email : req.query.email
+                }
+            }
+            const cursor = addedServiceCollection.find(query)
+            const result = await cursor.toArray()
+            res.send(result)
+        })
+        // jwt token
+        app.post('/jwt', async(req, res)=>{
+            const userMail = req.body 
+            
+            const token = jwt.sign(userMail,process.env.ACCESS_TOKEN,{expiresIn : '1h'})
+            res.send({token})
+        })
+       
     }
     finally {
 
