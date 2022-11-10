@@ -14,14 +14,14 @@ app.get('/', (req, res) => {
     res.send('max dental is running')
 })
 // jwt middleware
-const jwtVerify = (req, res, next) =>{
+const jwtVerify = (req, res, next) => {
     const authToken = req.headers.authorization
-    if(!authToken){
+    if (!authToken) {
         return res.status(401).send('unauthorized')
     }
     const token = authToken.split(' ')[1]
-    jwt.verify(token, process.env.ACCESS_TOKEN, function(err, decoded){
-        if(err){
+    jwt.verify(token, process.env.ACCESS_TOKEN, function (err, decoded) {
+        if (err) {
             return res.status(403).send('unauthorized')
         }
         req.decoded = decoded
@@ -37,75 +37,66 @@ async function run() {
         const reviewCollection = client.db('MaxDental').collection('review')
         const addedServiceCollection = client.db('MaxDental').collection('addservice')
         // servicename to show on home page
-        app.get('/servicesName', async(req, res)=>{
+        app.get('/servicesName', async (req, res) => {
             const query = {}
             const cursor = serviceCollection.find(query)
 
             const result = await cursor.limit(3).toArray()
             res.send(result)
         })
-         // add service by user
-         app.post('/services', async(req, res)=>{
+        // add service by user
+        app.post('/services', async (req, res) => {
             const service = req.body
             console.log(service);
             const result = await service_Collection.insertOne(service)
             res.send(result)
         })
         // all services category api
-        app.get('/services', async(req, res)=>{
+        app.get('/services', async (req, res) => {
             const query = {}
             const cursor = service_Collection.find(query)
             const result = await cursor.toArray()
             res.send(result)
         })
         // specific service
-        app.get('/services/:id', async(req, res)=>{
+        app.get('/services/:id', async (req, res) => {
             const id = req.params.id
-            const query = {_id : ObjectId(id)}
+            const query = { _id: ObjectId(id) }
 
             const result = await service_Collection.findOne(query)
             res.send(result)
         })
         // get review specifice
-        app.delete('/review/:id', async(req, res)=>{
-            const id = req.params.id 
-            
-            const query = {_id : ObjectId(id)}
+        app.delete('/review/:id', async (req, res) => {
+            const id = req.params.id
+
+            const query = { _id: ObjectId(id) }
             const result = await reviewCollection.deleteOne(query)
             res.send(result)
         })
         // get specific review to update it
-        app.get('/review/:id', async(req, res)=>{
-            const id = req.params.id 
-            const query = {_id : ObjectId(id)}
+        app.get('/review/:id', async (req, res) => {
+            const id = req.params.id
+            const query = { _id: ObjectId(id) }
             const result = await reviewCollection.findOne(query)
             res.send(result)
         })
         // get review 
-        app.post('/review',  async(req, res)=>{
-            const review = req.body 
-            const result = await reviewCollection.insertOne(review)
+        app.post('/review', async (req, res) => {
+            const review = req.body
+            const result = await reviewCollection.insertOne(review, {'dateadded' : new Date()})
             res.send(result)
         })
         // get review
-        app.get('/review',jwtVerify,  async(req, res)=>{
-            const decoded = req.decoded 
-            console.log(decoded);
-            if(decoded.email !== req.query.email){
-                res.status(403).send('unauthorized')
-            }
-            if(decoded.name !== req.query.name){
-                res.status(403).send('unauthorized')
-            }
+        app.get('/review',  async (req, res) => {
+            const decoded = req.decoded
             let query = {}
-            if(req.query.name){
-                query = {
-                    serviceName :  req.query.name
-                }
+            query = {
+                serviceName: req.query.name
             }
-            if(req.query.email){
-                query ={
-                    email : req.query.email
+            if (req.query.email) {
+                query = {
+                    email: req.query.email
                 }
             }
             const cursor = reviewCollection.find(query)
@@ -113,30 +104,30 @@ async function run() {
             res.send(review)
         })
         // update message 
-        app.put('/review/:id', async(req, res)=>{
-            const id =req.params.id 
-            const filter = {_id : ObjectId(id)}
+        app.put('/review/:id', async (req, res) => {
+            const id = req.params.id
+            const filter = { _id: ObjectId(id) }
 
-            const messageUpd = req.body 
+            const messageUpd = req.body
             console.log(messageUpd);
 
             const options = { upsert: true };
 
             const updateMessage = {
-                $set : {
-                  message : messageUpd.message
+                $set: {
+                    message: messageUpd.message
                 }
             }
             const result = await reviewCollection.updateOne(filter, updateMessage, options)
             res.send(result)
         })
-       
+
         // get add services
-        app.get('/addservice', async(req, res)=>{
+        app.get('/addservice', async (req, res) => {
             let query = {}
-            if(req.query.email){
-                query={
-                    email : req.query.email
+            if (req.query.email) {
+                query = {
+                    email: req.query.email
                 }
             }
             const cursor = addedServiceCollection.find(query)
@@ -159,13 +150,13 @@ async function run() {
 
         // })
         // jwt token
-        app.post('/jwt', async(req, res)=>{
-            const userMail = req.body 
-            
-            const token = jwt.sign(userMail,process.env.ACCESS_TOKEN,{expiresIn : '1h'})
-            res.send({token})
+        app.post('/jwt', async (req, res) => {
+            const userMail = req.body
+
+            const token = jwt.sign(userMail, process.env.ACCESS_TOKEN, { expiresIn: '1h' })
+            res.send({ token })
         })
-       
+
     }
     finally {
 
