@@ -13,7 +13,21 @@ app.use(express.json())
 app.get('/', (req, res) => {
     res.send('max dental is running')
 })
-
+// jwt middleware
+const jwtVerify = (req, res, next) =>{
+    const authToken = req.headers.authorization
+    if(!authToken){
+        return res.status(401).send('unauthorized')
+    }
+    const token = authToken.split(' ')[1]
+    jwt.verify(token, process.env.ACCESS_TOKEN, function(err, decoded){
+        if(err){
+            return res.status(403).send('unauthorized')
+        }
+        req.decoded = decoded
+        next()
+    })
+}
 const uri = `mongodb+srv://${process.env.DB_USER}:${process.env.DB_PASSWORD}@cluster0.cxnxmvd.mongodb.net/?retryWrites=true&w=majority`;
 const client = new MongoClient(uri, { useNewUrlParser: true, useUnifiedTopology: true, serverApi: ServerApiVersion.v1 });
 async function run() {
@@ -28,6 +42,13 @@ async function run() {
             const cursor = serviceCollection.find(query)
 
             const result = await cursor.limit(3).toArray()
+            res.send(result)
+        })
+         // add service by user
+         app.post('/services', async(req, res)=>{
+            const service = req.body
+            console.log(service);
+            const result = await service_Collection.insertOne(service)
             res.send(result)
         })
         // all services category api
@@ -53,14 +74,29 @@ async function run() {
             const result = await reviewCollection.deleteOne(query)
             res.send(result)
         })
+        // get specific review to update it
+        app.get('/review/:id', async(req, res)=>{
+            const id = req.params.id 
+            const query = {_id : ObjectId(id)}
+            const result = await reviewCollection.findOne(query)
+            res.send(result)
+        })
         // get review 
-        app.post('/review', async(req, res)=>{
+        app.post('/review',  async(req, res)=>{
             const review = req.body 
             const result = await reviewCollection.insertOne(review)
             res.send(result)
         })
         // get review
-        app.get('/review', async(req, res)=>{
+        app.get('/review',jwtVerify,  async(req, res)=>{
+            const decoded = req.decoded 
+            console.log(decoded);
+            if(decoded.email !== req.query.email){
+                res.status(403).send('unauthorized')
+            }
+            if(decoded.name !== req.query.name){
+                res.status(403).send('unauthorized')
+            }
             let query = {}
             if(req.query.name){
                 query = {
@@ -76,12 +112,25 @@ async function run() {
             const review = await cursor.toArray()
             res.send(review)
         })
-        // add service by user
-        app.post('/addservice', async(req, res)=>{
-            const service = req.body
-            const result = await addedServiceCollection.insertOne(service)
+        // update message 
+        app.put('/review/:id', async(req, res)=>{
+            const id =req.params.id 
+            const filter = {_id : ObjectId(id)}
+
+            const messageUpd = req.body 
+            console.log(messageUpd);
+
+            const options = { upsert: true };
+
+            const updateMessage = {
+                $set : {
+                  message : messageUpd.message
+                }
+            }
+            const result = await reviewCollection.updateOne(filter, updateMessage, options)
             res.send(result)
         })
+       
         // get add services
         app.get('/addservice', async(req, res)=>{
             let query = {}
@@ -94,6 +143,21 @@ async function run() {
             const result = await cursor.toArray()
             res.send(result)
         })
+        // update review
+        // app.put('/review/:id', async(req, res)=>{
+        //     const id = req.params.id 
+        //     console.log(req.body);
+
+        //     const filter = {_id : ObjectId(id)}
+        //     const options = { upsert: true };
+
+        //     const updateReview ={
+        //         $set :{
+        //             message : 
+        //         }
+        //     }
+
+        // })
         // jwt token
         app.post('/jwt', async(req, res)=>{
             const userMail = req.body 
